@@ -4,19 +4,19 @@ const {
   createTour,
   getTour,
   updateTour,
-  deleteTour,
-  checkID,
-  checkBody
+  deleteTour
 } = require('../controllers/tourController');
 
 const router = express.Router();
 
-router.param('id', checkID);
+// This ID checking will be done by mongoose instead
+// router.param('id', checkID);
 
+// Actions for the routes are set as middleware
 router
   .route('/')
   .get(getAllTours)
-  .post(checkBody, createTour);
+  .post(createTour);
 
 router
   .route('/:id')
