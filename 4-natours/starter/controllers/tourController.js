@@ -1,17 +1,30 @@
-const path = require('path');
 const Tour = require('./../models/tourModel');
+const APIFeatures = require('../utils/apiFeatures');
 
-const dataPath = path.join(__dirname, '../dev-data/data/', 'tours-simple.json');
+// ---------- Extra middleware to be applied in assigned routes
+exports.aliasTopTours = async (req, res, next) => {
+  req.query.limit = '5';
+  req.query.sort = '-ratingsAverage,price';
+  req.query.fields = 'name,price,ratingsAverage,summary,difficulty';
 
-// const tours = JSON.parse(fs.readFileSync(dataPath));
+  next();
+};
 
 // ---------- Middleware to be applied in tourRoutes.ts
 exports.getAllTours = async (req, res) => {
   try {
-    const tours = await Tour.find();
+    // ----- Execute query
+    // query.sort().select().skip().limit()
+    const features = new APIFeatures(Tour.find(), req.query)
+      .filter()
+      .sort()
+      .limitFields()
+      .paginate();
+    const tours = await features.query;
+
+    // ----- Send response
     res.status(200).json({
       status: 'success',
-      requestedAt: req.requestTime,
       results: tours.length, //not mandatory for jsend
       data: {
         tours: tours // When the key has the same name, we can just write it, omitting : tours

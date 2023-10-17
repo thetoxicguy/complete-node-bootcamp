@@ -7,7 +7,7 @@ const app = express();
 
 // -------------- 1. Middleware (start)
 if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev')); // 3rd party middleware
+  app.use(morgan('dev')); // 3rd party middleware that notifies info about the requests
 }
 
 // Middleware: a function that can modify the incoming request/response objects in Express
