@@ -14,7 +14,7 @@ class APIFeatures {
     let queryStr = JSON.stringify(queryObj);
     queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`);
     // eslint-disable-next-line no-console
-    console.log(this.query, this.queryStr);
+    // console.log(this.query, this.queryStr);
 
     this.query = this.query.find(JSON.parse(queryStr));
 

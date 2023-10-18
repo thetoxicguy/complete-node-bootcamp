@@ -5,7 +5,9 @@ const {
   getTour,
   updateTour,
   deleteTour,
-  aliasTopTours
+  aliasTopTours,
+  getTourStats,
+  getMonthlyPlan
 } = require('../controllers/tourController');
 
 const router = express.Router();
@@ -17,11 +19,16 @@ const router = express.Router();
 router.route('/top-5-cheap').get(aliasTopTours, getAllTours);
 
 // Actions for the routes are set as middleware
+router.route('/tour-stats').get(getTourStats);
+router.route('/monthly-plan/:year').get(getMonthlyPlan);
+
 router
   .route('/')
   .get(getAllTours)
   .post(createTour);
 
+// Important Notice: Parameters act as middleware, so
+// the routes that come after are accumulative
 router
   .route('/:id')
   .get(getTour)

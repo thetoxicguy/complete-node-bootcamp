@@ -1,59 +1,170 @@
 const mongoose = require('mongoose');
+const slugify = require('slugify');
+const validator = require('validator');
 
-const tourSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, 'A tour must have a name'], // Validation
-    unique: true, // Names are unique in our DB collection (mongoose)
-    trim: true // Remove whitespaces at the beginning and at the end
+const tourSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, 'A tour must have a name'], // Validation
+      unique: true, // Names are unique in our DB collection (mongoose)
+      trim: true, // Remove whitespaces at the beginning and at the end
+      minlength: [10, 'The name must be at least 10 characters'],
+      /*
+      isAlpha only allows alphabetic characters and no spaces.
+      As we use spaces for the name,
+      this validator isn't really helpful.
+      */
+      validate: [
+        validator.isAlpha,
+        'Tour name should only contain characters with no spaces'
+      ] // No need to call using ()
+    },
+    slug: {
+      type: String
+    },
+    duration: {
+      type: String,
+      required: [true, 'A tour must have a duration'] // Validation
+    },
+    maxGroupSize: {
+      type: Number,
+      required: [true, 'A tour must have a group size'] // Validation
+    },
+    difficulty: {
+      type: String,
+      required: [true, 'A tour must have difficulty'], // Validation
+      enum: {
+        values: ['easy', 'medium', 'difficult'],
+        message: 'Difficulty is either: easy, medium or difficult'
+      }
+    },
+    ratingsAverage: {
+      type: Number,
+      default: 4.5,
+      min: [1, 'Rating must be at least 1'],
+      max: [5, 'Rating must be at most 5']
+    },
+    ratingsQuantity: {
+      type: Number,
+      default: 0
+    },
+    price: {
+      type: Number,
+      required: [true, 'A tour must have a price'] // Validation
+    },
+    discount: {
+      type: Number,
+      validate: {
+        /*
+        This validator only applies for new documents
+        it doesn't apply for update (PATCH),
+        because of keyword 'this'.
+        */
+        validator: function(val) {
+          return val < this.price; // 'this' points to the document
+        },
+        message: 'Discount ({VALUE}) should be below the regular price!' // {VALUE} is how mongo access the value
+      }
+    },
+    summary: {
+      type: String,
+      trim: true, // Remove whitespaces at the beginning and at the end
+      required: [true, 'A tour must have a summary']
+    },
+    description: {
+      type: String,
+      trim: true // Remove whitespaces at the beginning and at the end
+    },
+    imageCover: {
+      type: String,
+      required: [true, 'A tour must have a cover image']
+    },
+    images: [String],
+    createdAt: {
+      type: Date,
+      default: Date.now(),
+      select: false
+    },
+    startDates: [Date],
+    exclusiveTour: {
+      type: Boolean,
+      default: false
+    }
   },
-  duration: {
-    type: String,
-    required: [true, 'A tour must have a duration'] // Validation
-  },
-  maxGroupSize: {
-    type: Number,
-    required: [true, 'A tour must have a group size'] // Validation
-  },
-  difficulty: {
-    type: String,
-    required: [true, 'A tour must have difficulty'] // Validation
-  },
-  ratingsAverage: {
-    type: Number,
-    default: 4.5
-  },
-  ratingsQuantity: {
-    type: Number,
-    default: 0
-  },
-  price: {
-    type: Number,
-    required: [true, 'A tour must have a price'] // Validation
-  },
-  discount: {
-    type: Number
-  },
-  summary: {
-    type: String,
-    trim: true, // Remove whitespaces at the beginning and at the end
-    required: [true, 'A tour must have a summary']
-  },
-  description: {
-    type: String,
-    trim: true // Remove whitespaces at the beginning and at the end
-  },
-  imageCover: {
-    type: String,
-    required: [true, 'A tour must have a cover image']
-  },
-  images: [String],
-  createdAt: {
-    type: Date,
-    default: Date.now(),
-    select: false
-  },
-  startDates: [Date]
+  /*
+  We must pass an options object to the schema
+  in order to include the virtual properties.
+  */
+  {
+    // Each time it is outputed as JSON we add the virtual properties
+    toJSON: { virtuals: true },
+    // Each time it is outputed as an object we add the virtual properties
+    toObject: { virtuals: true }
+  }
+);
+
+/*
+The 'virtual' method for schemas generates a property
+each time we access the database when using a GET method.
+The callback function is not an arrow function, because
+we use the 'this' keyword to point to a document's properties
+for each one.
+*/
+tourSchema.virtual('durationWeeks').get(function() {
+  return this.duration / 7; // Duration in weeks
+});
+
+// ----- Document middleware
+tourSchema.pre('save', function(next) {
+  // eslint-disable-next-line no-console
+  console.log('Will save document...');
+  next();
+});
+
+tourSchema.pre('save', function(next) {
+  // 'this' points to the document
+  this.slug = slugify(this.name, { lower: true });
+  next();
+});
+
+tourSchema.post('save', function(doc, next) {
+  // eslint-disable-next-line no-console
+  console.log(doc._id);
+  next();
+});
+
+// ----- Query middleware
+/*
+Suppose we have selected tours not available to anyone
+We must include all events that start with find (using regex):
+find. findOne, findAndUpdate, findOneAndDelete,... .
+*/
+tourSchema.pre(/^find/, function(next) {
+  // 'this' points to the query,
+  // so another .find is chained to our original query
+  this.find({ exclusiveTour: { $ne: true } });
+  this.start = Date.now();
+  next();
+});
+
+tourSchema.post(/^find/, function(docs, next) {
+  // eslint-disable-next-line no-console
+  console.log(docs);
+  // eslint-disable-next-line no-console
+  console.log(`Query took ${Date.now() - this.start} milliseconds`);
+  next();
+});
+
+// ----- Aggregation middleware
+/*
+To avoid editing all aggregations to remove the exclusive tours,
+we pass an aggregation middleware
+*/
+tourSchema.pre('aggregate', function(next) {
+  // 'this' points to the aggregation
+  this.pipeline().unshift({ $match: { exclusiveTour: { $ne: true } } });
+  next();
 });
 
 // It is convention to capitalize models
