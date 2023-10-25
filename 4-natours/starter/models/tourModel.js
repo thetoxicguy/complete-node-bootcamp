@@ -9,16 +9,16 @@ const tourSchema = new mongoose.Schema(
       required: [true, 'A tour must have a name'], // Validation
       unique: true, // Names are unique in our DB collection (mongoose)
       trim: true, // Remove whitespaces at the beginning and at the end
-      minlength: [10, 'The name must be at least 10 characters'],
+      minlength: [10, 'The name must be at least 10 characters']
       /*
       isAlpha only allows alphabetic characters and no spaces.
       As we use spaces for the name,
       this validator isn't really helpful.
       */
-      validate: [
-        validator.isAlpha,
-        'Tour name should only contain characters with no spaces'
-      ] // No need to call using ()
+      // validate: [
+      //   validator.isAlpha,
+      //   'Tour name should only contain characters with no spaces'
+      // ] // No need to call using ()
     },
     slug: {
       type: String
@@ -83,7 +83,8 @@ const tourSchema = new mongoose.Schema(
     images: [String],
     createdAt: {
       type: Date,
-      default: Date.now(),
+      immutable: true, // Doesn't send error, just ignores updates
+      default: () => Date.now(),
       select: false
     },
     startDates: [Date],
@@ -149,8 +150,6 @@ tourSchema.pre(/^find/, function(next) {
 });
 
 tourSchema.post(/^find/, function(docs, next) {
-  // eslint-disable-next-line no-console
-  console.log(docs);
   // eslint-disable-next-line no-console
   console.log(`Query took ${Date.now() - this.start} milliseconds`);
   next();

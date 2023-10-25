@@ -1,6 +1,13 @@
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 
+// ----- Catching Uncaught Exceptions
+process.on('uncaughtException', err => {
+  console.log('UNCAUGHT EXCEPTION! 💥 Shutting down...');
+  console.log(err.name, err.message);
+  process.exit(1); // This command terminates the process
+});
+
 dotenv.config({ path: './config.env' });
 const app = require('./app');
 
@@ -17,14 +24,6 @@ mongoose.connect(uri, {
   // useFindAndModify: false
   // useCreateIndex: true
 });
-//
-// This was used before the db.once was available
-// .then(con => {
-// eslint-disable-next-line no-console
-// console.log(con.connections); // Prints the connections object
-// eslint-disable-next-line no-console
-// console.log('DB connection successful');
-// });
 
 const db = mongoose.connection;
 // eslint-disable-next-line no-console
@@ -35,7 +34,18 @@ db.once('open', function() {
 });
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => {
+
+// ----- Unhandled Rejections
+const server = app.listen(port, () => {
   // eslint-disable-next-line no-console
   console.log(`App is running on port ${port}...`);
+});
+
+process.on('unhandledRejection', err => {
+  console.log('UNHANDLED REJECTION! 💥 Shutting down...');
+  console.log(err.name, err.message);
+  server.close(() => {
+    // This gives the server time to finnish all pending requests
+    process.exit(1); // This command terminates the process
+  });
 });

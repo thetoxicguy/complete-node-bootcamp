@@ -2,10 +2,13 @@ const express = require('express');
 const morgan = require('morgan');
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
+const AppError = require('./utils/appError');
+const globalErrorHandler = require('./controllers/errorController');
 
 const app = express();
 
 // -------------- 1. Middleware (start)
+
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev')); // 3rd party middleware that notifies info about the requests
 }
@@ -24,4 +27,18 @@ app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 // -------------- 2. Mount Routes (end)
 
+// -------------- 3. Error Handling (start)
+// ----- Unhandled routes (last middleware, after valid routes) (start)
+// all stands for all methods
+app.all('*', (req, res, next) => {
+  // const err = new Error(`Cannot find ${req.originalUrl} on this server`);
+  // err.status = 'fail';
+  // err.statusCode = 404;
+  next(new AppError(`Cannot find ${req.originalUrl} on this server`, 404));
+});
+
+// ----- Centralized Error Handling
+app.use(globalErrorHandler);
+
+// -------------- 3. Error Handling (end)
 module.exports = app;
