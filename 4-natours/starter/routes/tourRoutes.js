@@ -12,9 +12,6 @@ const {
 
 const router = express.Router();
 
-// This ID checking will be done by mongoose instead
-// router.param('id', checkID);
-
 // Aliasing common queries with middleware
 router.route('/top-5-cheap').get(aliasTopTours, getAllTours);
 
@@ -27,8 +24,10 @@ router
   .get(getAllTours)
   .post(createTour);
 
-// Important Notice: Parameters act as middleware, so
-// the routes that come after are accumulative
+/*
+Important Notice: Parameters act as middleware, so
+the routes that come after are accumulative
+*/
 router
   .route('/:id')
   .get(getTour)
