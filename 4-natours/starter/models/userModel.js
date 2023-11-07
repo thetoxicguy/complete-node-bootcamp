@@ -19,7 +19,8 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, 'Please provide password'],
-    minlength: 8
+    minlength: 8,
+    select: false // This field won't be included in the output
   },
   passwordConfirm: {
     type: String,
@@ -48,6 +49,15 @@ userSchema.pre('save', async function(next) {
   this.passwordConfirm = undefined; // We reset the passwordConfirm
   next();
 });
+
+// Instance method to include it in every document for this model
+userSchema.methods.correctPassword = async function(
+  candidatePassword,
+  userPassword
+) {
+  // candidatePassword is not hashed, but userPassword is
+  return await bcrypt.compare(candidatePassword, userPassword);
+};
 
 // It is convention to capitalize models
 const User = mongoose.model('User', userSchema);
