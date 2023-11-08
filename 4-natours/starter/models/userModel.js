@@ -35,7 +35,8 @@ const userSchema = new mongoose.Schema({
       },
       message: 'Password confirmation failed'
     }
-  }
+  },
+  passwordChangedAt: Date
 });
 
 userSchema.pre('save', async function(next) {
@@ -57,6 +58,17 @@ userSchema.methods.correctPassword = async function(
 ) {
   // candidatePassword is not hashed, but userPassword is
   return await bcrypt.compare(candidatePassword, userPassword);
+};
+
+userSchema.methods.changedPasswordAfter = function(JWTTimestamp) {
+  if (this.passwordChangedAt) {
+    const changedTimestamp = parseInt(
+      this.passwordChangedAt.getTime() / 1000,
+      10
+    );
+    return JWTTimestamp < changedTimestamp;
+  }
+  return false; // false means "not changed"
 };
 
 // It is convention to capitalize models
