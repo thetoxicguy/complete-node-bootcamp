@@ -59,6 +59,21 @@ userSchema.pre('save', async function(next) {
   next();
 });
 
+userSchema.pre('save', function(next) {
+  /*
+  If the password is not modified or the document is new,
+  we don't want to update the passwordChangedAt field
+  */
+  if (!this.isModified('password') || this.isNew) return next();
+  /*
+  We substract 1 second to the passwordChangedAt field
+  because sometimes the token is created before the passwordChangedAt
+  and ensure that the token is always created after the passwordChangedAt
+  */
+  this.passwordChangedAt = Date.now() - 1000;
+  next();
+});
+
 // Instance method to include it in every document for this model
 userSchema.methods.correctPassword = async function(
   candidatePassword,
