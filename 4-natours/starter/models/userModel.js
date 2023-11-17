@@ -44,7 +44,12 @@ const userSchema = new mongoose.Schema({
   },
   passwordChangedAt: Date,
   passwordResetToken: String,
-  passwordResetExpires: Date
+  passwordResetExpires: Date,
+  active: {
+    type: Boolean,
+    default: true, // New users are active by default
+    select: false // This field won't be included in the output
+  }
 });
 
 userSchema.pre('save', async function(next) {
@@ -73,6 +78,11 @@ userSchema.pre('save', function(next) {
   this.passwordChangedAt = Date.now() - 1000;
   next();
 });
+
+userSchema.pre(/^find/, function(next) {
+  this.find({ active: { $ne: false } }); // This points to the current query
+  next();
+}); // All queries that start with find
 
 // Instance method to include it in every document for this model
 userSchema.methods.correctPassword = async function(
