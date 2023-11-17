@@ -1,6 +1,7 @@
 const express = require('express');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
 const AppError = require('./utils/appError');
@@ -8,8 +9,13 @@ const globalErrorHandler = require('./controllers/errorController');
 
 const app = express();
 
+// Middleware: a function that can modify the incoming request/response objects in Express
+// (in the request/response cycle)
 // -------------- 1. Global Middleware (start)
+// Set security HTTP headers
+app.use(helmet()); // app.use doesn't neet to call a function, but in this case, helmet returns a function. So, it needs to be called
 
+// Development logging
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev')); // 3rd party middleware that notifies info about the requests
 }
@@ -22,16 +28,24 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again in an hour'
 });
 
+// Limit requests from the same IP
 // This doesn't work when the application crashes and restarts
 app.use('/api', limiter); // only apply to /api (the first argument is optional)
 
-// Middleware: a function that can modify the incoming request/response objects in Express
-// (in the request/response cycle)
+// Body parser. Reading data from body into req.body
 // In this case, this line allows the execution
 // of JSON manipulation in POST, PATCH and DELETE
-app.use(express.json());
+app.use(express.json({ limit: '10kb' }));
 
+// serving static files
 app.use(express.static(`${__dirname}/public/`));
+
+// Test middleware
+app.use((req, res, next) => {
+  req.requestTime = new Date().toISOString();
+  // console.log(req.headers);
+  next();
+});
 // -------------- 1. Global Middleware (end)
 
 // -------------- 2. Mount Routes (start)
