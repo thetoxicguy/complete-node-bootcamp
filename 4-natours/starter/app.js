@@ -2,6 +2,8 @@ const express = require('express');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss-clean');
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
 const AppError = require('./utils/appError');
@@ -32,10 +34,18 @@ const limiter = rateLimit({
 // This doesn't work when the application crashes and restarts
 app.use('/api', limiter); // only apply to /api (the first argument is optional)
 
-// Body parser. Reading data from body into req.body
-// In this case, this line allows the execution
-// of JSON manipulation in POST, PATCH and DELETE
+/*
+Body parser. Reading data from body into req.body
+  In this case, this line allows the execution
+  of JSON manipulation in POST, PATCH and DELETE
+*/
 app.use(express.json({ limit: '10kb' }));
+
+// Data Sanitization against NoSQL query injection
+app.use(mongoSanitize());
+
+// Data Sanitization against Cross Site Scripting (XSS) attacks
+app.use(xss());
 
 // serving static files
 app.use(express.static(`${__dirname}/public/`));
