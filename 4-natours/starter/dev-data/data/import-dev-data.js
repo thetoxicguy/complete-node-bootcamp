@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const Tour = require('../../models/tourModel');
 
-const filePath = path.join(__dirname, '/tours-simple.json');
+const filePath = path.join(__dirname, '/tours.json');
 
 dotenv.config({ path: './config.env' });
 
@@ -30,6 +30,7 @@ db.once('open', function() {
 
 // ---------- Reading the file
 const tours = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+// eslint-disable-next-line no-console
 console.log('File path:', filePath);
 // ---------- Import data into database
 // JSON.parse is used because mongoose uses JS objects, not JSON

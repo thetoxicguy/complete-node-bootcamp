@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const slugify = require('slugify');
 const validator = require('validator');
+const User = require('./userModel');
 
 const tourSchema = new mongoose.Schema(
   {
@@ -91,7 +92,33 @@ const tourSchema = new mongoose.Schema(
     exclusiveTour: {
       type: Boolean,
       default: false
-    }
+    },
+    startLocation: {
+      // GeoJSON
+      type: {
+        // This type is addressed to GeoJSON
+        type: String, // This nested type is for the schema
+        default: 'Point', // This value can be 'Point', 'LineString', 'Polygon'
+        enum: ['Point'] // This value can only be 'Point'
+      },
+      coordinates: [Number], // Longitude, Latitude (GeoJSON counterintuitive order)
+      address: String,
+      description: String
+    },
+    locations: [
+      {
+        type: {
+          type: String,
+          default: 'Point',
+          enum: ['Point']
+        },
+        coordinates: [Number], // Longitude, Latitude (GeoJSON counterintuitive order)
+        address: String,
+        description: String,
+        day: Number
+      }
+    ],
+    guides: Array
   },
   /*
   We must pass an options object to the schema
@@ -126,6 +153,18 @@ tourSchema.pre('save', function(next) {
 tourSchema.pre('save', function(next) {
   // 'this' points to the document
   this.slug = slugify(this.name, { lower: true });
+  next();
+});
+
+// ----- Embedding documents (guides by id)
+tourSchema.pre('save', async function(next) {
+  /*
+  Take the ids of the guides from the array and
+  await for each one as a promise.
+  */
+  const guidesPromises = this.guides.map(async id => await User.findById(id));
+  // We await for all promises to be resolved to get the guides array
+  this.guides = await Promise.all(guidesPromises);
   next();
 });
 
