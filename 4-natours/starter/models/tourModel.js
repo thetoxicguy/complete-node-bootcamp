@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const slugify = require('slugify');
 const validator = require('validator');
-const User = require('./userModel');
+// const User = require('./userModel'); // Only used when embedding users data
 
 const tourSchema = new mongoose.Schema(
   {
@@ -118,7 +118,12 @@ const tourSchema = new mongoose.Schema(
         day: Number
       }
     ],
-    guides: Array
+    guides: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: 'User' // The collection from which we reference the id
+      }
+    ]
   },
   /*
   We must pass an options object to the schema
@@ -157,16 +162,16 @@ tourSchema.pre('save', function(next) {
 });
 
 // ----- Embedding documents (guides by id)
-tourSchema.pre('save', async function(next) {
-  /*
-  Take the ids of the guides from the array and
-  await for each one as a promise.
-  */
-  const guidesPromises = this.guides.map(async id => await User.findById(id));
-  // We await for all promises to be resolved to get the guides array
-  this.guides = await Promise.all(guidesPromises);
-  next();
-});
+// tourSchema.pre('save', async function(next) {
+//   /*
+//   Take the ids of the guides from the array and
+//   await for each one as a promise.
+//   */
+//   const guidesPromises = this.guides.map(async id => await User.findById(id));
+//   // We await for all promises to be resolved to get the guides array
+//   this.guides = await Promise.all(guidesPromises);
+//   next();
+// });
 
 tourSchema.post('save', function(doc, next) {
   // eslint-disable-next-line no-console
@@ -185,6 +190,19 @@ tourSchema.pre(/^find/, function(next) {
   // so another .find is chained to our original query
   this.find({ exclusiveTour: { $ne: true } });
   this.start = Date.now();
+  next();
+});
+
+/*
+We populate the guides field with a query middleware (using a regex)
+in the User model and we exclude the fields we don't want to show
+*/
+tourSchema.pre(/^find/, function(next) {
+  this.populate({
+    // this points to the current query
+    path: 'guides', // The field to populate
+    select: '-__v -passwordChangedAt' // We can exclude fields for this reference with -
+  });
   next();
 });
 
