@@ -14,7 +14,7 @@ exports.aliasTopTours = (req, res, next) => {
 
 // ---------- Middleware to be applied in tourRoutes.ts
 exports.getAllTours = catchAsync(async (req, res, next) => {
-  const features = new APIFeatures(Tour.find(), req.query)
+  const features = new APIFeatures(Tour.find(), req.query) // Passing the query through APIFeatures for security reasons in the operations described below
     .filter()
     .sort()
     .limitFields()
