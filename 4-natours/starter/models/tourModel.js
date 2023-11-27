@@ -148,6 +148,13 @@ tourSchema.virtual('durationWeeks').get(function() {
   return this.duration / 7; // Duration in weeks
 });
 
+// Virtual populate (child documents referencing parent documents)
+tourSchema.virtual('reviews', {
+  ref: 'Review',
+  foreignField: 'tour', // "tour" field in the Review model
+  localField: '_id'
+});
+
 // ----- Document middleware
 tourSchema.pre('save', function(next) {
   // eslint-disable-next-line no-console
