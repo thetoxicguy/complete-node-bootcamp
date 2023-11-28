@@ -9,9 +9,12 @@ const {
   getTourStats,
   getMonthlyPlan
 } = require('../controllers/tourController');
+const reviewRouter = require('./reviewRoutes');
 const { protect, restrictTo } = require('../controllers/authController');
 
 const router = express.Router();
+
+router.use('/:tourId/reviews', reviewRouter); // We mount a route in this router
 
 // Aliasing common queries with middleware
 router.route('/top-5-cheap').get(aliasTopTours, getAllTours);
