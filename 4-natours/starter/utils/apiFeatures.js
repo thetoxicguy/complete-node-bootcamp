@@ -1,3 +1,4 @@
+// Class 96 fix: Two-digit filter works only for the first digit
 class APIFeatures {
   constructor(query, queryString) {
     this.query = query;
