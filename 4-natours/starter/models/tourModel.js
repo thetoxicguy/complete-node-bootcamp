@@ -137,6 +137,11 @@ const tourSchema = new mongoose.Schema(
   }
 );
 
+// ----- Indexes
+// tourSchema.index({ price: 1 });
+tourSchema.index({ price: 1, ratingsAverage: -1 }); // 1 for ascending, -1 for descending
+tourSchema.index({ slug: 1 });
+
 /*
 The 'virtual' method for schemas generates a property
 each time we access the database when using a GET method.
