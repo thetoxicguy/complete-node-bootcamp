@@ -71,15 +71,22 @@ reviewSchema.statics.calcAverageRatings = async function(tourId) {
     }
   ]);
   // console.log(stats);
-  // Update the tour with the new stats, we don't need to save it
-  await Tour.findByIdAndUpdate(tourId, {
-    ratingsQuantity: stats[0].nRating,
-    ratingsAverage: stats[0].avgRating
-  });
+  // Update the tour with the new (nonempty) stats, we don't need to save it
+  if (stats.length > 0) {
+    await Tour.findByIdAndUpdate(tourId, {
+      ratingsQuantity: stats[0].nRating,
+      ratingsAverage: stats[0].avgRating
+    });
+  } else {
+    await Tour.findByIdAndUpdate(tourId, {
+      ratingsQuantity: 0,
+      ratingsAverage: 4.5
+    });
+  }
 };
 
 /*
-This middleware is to add
+This middleware is to include
 the average rating and the number of ratings to the tour document
 */
 reviewSchema.post('save', function() {
@@ -88,6 +95,30 @@ reviewSchema.post('save', function() {
   We call the static method on the model
   */
   this.constructor.calcAverageRatings(this.tour);
+});
+
+/*
+The two middleware below adds functionality to the update and delete methods
+*/
+reviewSchema.pre(/^findOneAnd/, async function(next) {
+  /*
+   * @dev First inject object into query as property.
+   * 'this' points to the current query
+   * We save the document in the query to use it in the post middleware
+   */
+
+  this.r = await this.clone().findOne(); //We clone the query to use it in the post middleware
+  console.log(this.r);
+  next();
+});
+
+reviewSchema.post(/^findOneAnd/, async function() {
+  /*
+  - 'this' points to the current query,
+  - 'this.r' is the review document we saved in the pre middleware
+  - @dev From here, we can call the static method calcAverageRatings on the model
+  */
+  await this.r.constructor.calcAverageRatings(this.r.tour);
 });
 
 const Review = mongoose.model('Review', reviewSchema);
