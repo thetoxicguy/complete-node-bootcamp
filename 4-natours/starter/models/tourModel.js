@@ -142,6 +142,7 @@ const tourSchema = new mongoose.Schema(
 // tourSchema.index({ price: 1 });
 tourSchema.index({ price: 1, ratingsAverage: -1 }); // 1 for ascending, -1 for descending
 tourSchema.index({ slug: 1 });
+tourSchema.index({ startLocation: '2dsphere' }); // The option '2dsphere' is to index geospatial data
 
 /*
 The 'virtual' method for schemas generates a property
