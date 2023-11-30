@@ -21,6 +21,7 @@ exports.deleteTour = factory.deleteOne(Tour);
 
 exports.getTourStats = catchAsync(async (req, res, next) => {
   const stats = await Tour.aggregate([
+    { $match: { exclusiveTour: { $ne: true } } },
     {
       $match: { ratingsAverage: { $gte: 4.5 } }
     },
@@ -48,6 +49,7 @@ exports.getTourStats = catchAsync(async (req, res, next) => {
 exports.getMonthlyPlan = catchAsync(async (req, res, next) => {
   const year = req.params.year * 1;
   const plan = await Tour.aggregate([
+    { $match: { exclusiveTour: { $ne: true } } },
     {
       // Given a standard array inside each of our documents,
       // unwind creates a copy of the document for each item in the array
@@ -105,6 +107,50 @@ exports.getToursWithin = catchAsync(async (req, res, next) => {
     results: tours.length,
     data: {
       data: tours
+    }
+  });
+});
+
+exports.getDistances = catchAsync(async (req, res, next) => {
+  const { latlng, unit } = req.params;
+  const [lat, lng] = latlng.split(',');
+
+  if (!lat || !lng) {
+    next(
+      new AppError(
+        'Please provide latitude and longitude in the format lat,lng',
+        400
+      )
+    );
+  }
+
+  const distances = await Tour.aggregate([
+    {
+      /*
+      geoNear always needs to be the first stage in the pipeline.
+      We must have at least 1 indexed geospatial field.
+      If we have more than 1, we must specify the 'keys' parameter.
+      */
+      $geoNear: {
+        // The point from which to calculate the distances
+        near: { type: 'Point', coordinates: [lng * 1, lat * 1] },
+        // The field that will be created to store the calculated distances
+        distanceField: 'distance',
+        distanceMultiplier: unit === 'km' ? 0.001 : 0.000621371 // To convert to kilometers or miles
+      }
+    },
+    {
+      $project: {
+        name: 1,
+        distance: 1
+      }
+    }
+  ]);
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      data: distances
     }
   });
 });

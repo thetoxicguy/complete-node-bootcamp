@@ -231,11 +231,11 @@ tourSchema.post(/^find/, function(docs, next) {
 To avoid editing all aggregations to remove the exclusive tours,
 we pass an aggregation middleware
 */
-tourSchema.pre('aggregate', function(next) {
-  // 'this' points to the aggregation
-  this.pipeline().unshift({ $match: { exclusiveTour: { $ne: true } } });
-  next();
-});
+// tourSchema.pre('aggregate', function(next) {
+//   // 'this' points to the aggregation
+//   this.pipeline().unshift({ $match: { exclusiveTour: { $ne: true } } });
+//   next();
+// });
 
 // It is convention to capitalize models
 const Tour = mongoose.model('Tour', tourSchema);
